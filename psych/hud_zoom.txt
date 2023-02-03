@@ -1,0 +1,2 @@
+v1: hud zoom amount (leave blank for 1)
+v2: duration (leave blank for 0)

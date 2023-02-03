@@ -1,0 +1,2 @@
+v1: beat modulo (bump every v1 of beats) (leave empty for curstep / 4)
+v2: zoom amount (multiplier of 0.015) (leave empty for 1)

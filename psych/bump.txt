@@ -1,0 +1,2 @@
+v1: game amount (leave empty for 0.015)
+v2: hud amount (leave empty for 0.03)

@@ -1,0 +1,2 @@
+v1: game zoom amount (leave blank for default)
+v2: duration (leave blank for 0)
