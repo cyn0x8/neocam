@@ -198,11 +198,6 @@ function onUpdatePost(elapsed)
 	if not frozen then
 		local alpha = min(max(elapsed * pos_speed, 0), 1)
 		
-		debugPrint(elapsed)
-		debugPrint(pos_speed)
-		debugPrint(alpha)
-		debugPrint("_________")
-		
 		if locked_offset then offset[1] = {0, 0} end
 		
 		offset[2] = {lerp(offset[2][1], offset[1][1], alpha), lerp(offset[2][2], offset[1][2], alpha)}
