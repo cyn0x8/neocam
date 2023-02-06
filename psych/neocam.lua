@@ -166,7 +166,7 @@ local events = {
 	end,
 	
 	game_zoom = function(amount, duration)
-		amount = tonumber(amount) or (getProperty("defaultCamZoom") / 0.015)
+		amount = tonumber(amount) or getProperty("defaultCamZoom")
 		duration = tonumber(duration) or 0
 		duration = duration < 0 and 0 or duration
 		zoom("game", amount, duration, "sineinout")
