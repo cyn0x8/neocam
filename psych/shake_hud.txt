@@ -1,0 +1,4 @@
+shake the hud camera (1 second, cubeout easing)
+
+v1: "x", number, default: 0
+v2: "y", number, default: 0

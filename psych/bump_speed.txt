@@ -1,2 +1,5 @@
-v1: beat modulo (bump every v1 of beats) (leave empty for curstep / 4)
-v2: zoom amount (multiplier of 0.015) (leave empty for 1)
+set the camera bump strength and frequency (in beats)
+note: bump amount is normalized; 1 = 1x default bump amount, 2 = 2x, etc
+
+v1: "modulo", number, default: 4
+v2: "amount", number, default: 1

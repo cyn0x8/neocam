@@ -1,2 +1,5 @@
-v1: game amount (leave empty for 0.015)
-v2: hud amount (leave empty for 0.03)
+bump both cameras
+note: bump amount is normalized; 1 = 1x default bump amount, 2 = 2x, etc
+
+v1: "game_amount", number, default: 1
+v2: "hud_amount", number, default: 2

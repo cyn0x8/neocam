@@ -1,2 +1,5 @@
-v1: hud zoom amount (leave blank for 1)
-v2: duration (leave blank for 0)
+zoom the hud camera (sineinout easing)
+note: bump amount is normalized; 1 = 1x default bump amount, 2 = 2x, etc
+
+v1: "amount", number, default: 1
+v2: "duration", number, default: 0

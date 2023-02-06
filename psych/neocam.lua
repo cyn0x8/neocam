@@ -1,128 +1,238 @@
-stop = false
+--[[ neocam by cyn ]]
 
-follow_speed = 8
+locked_pos = false
+pos_speed = 8
+
+locked_offset = false
+offset_mag = 8
+shake_fps = 24
+
+locked_zoom = false
 zoom_speed = 2
 
-position_locked = false
-offset_locked = false
+freeze = false
 
-offset_magnitude = 5
+-- internal
 
-local targets = {
-	["song name here"] = {
-		dad = {x = 0, y = 0},
-		bf = {x = 0, y = 0},
-		-- custom = {x = 0, y = 0},
-		-- ...
-	},
-	-- ...
-}
+local min = math.min
+local max = math.max
+local function lerp(start, goal, alpha) return start + (goal - start) * alpha end
 
-local cur, offset = {x = 0, y = 0}, {{x = 0, y = 0}, {x = 0, y = 0}}
-local zooms, bumping = {game = 1, hud = 1}, {modulo = 4, amount = 1}
+local targets = {}
+local cur = {0, 0}
+local offset = {{0, 0}, {0, 0}}
+local shaking = {{0, 0}, {0, 0}, 0}
+local zooms = {1, 1}
+local bumping = {4, 1}
 
-function set_target(tag, x, y) targets[tag] = {x = x, y = y} end
+function set_target(tag, x, y) targets[tag] = {x, y} end
+
 function focus(tag, duration, ease, lock)
 	local target = targets[tag]
 	if target then
-		if lock == false then position_locked = lock end
-		if not position_locked then
-			if lock == true then position_locked = lock end
-			if duration <= 0.01 then cancelTween("ncfollow_x"); setProperty("ncfollow.x", target.x); cancelTween("ncfollow_y"); setProperty("ncfollow.y", target.y)
-			else doTweenX("ncfollow_x", "ncfollow", target.x, duration, ease); doTweenY("ncfollow_y", "ncfollow", target.y, duration, ease) end
+		if lock == false then locked_pos = lock end
+		if not locked_pos then
+			if lock == true then locked_pos = lock end
+			if duration <= 0.01 then
+				cancelTween("ncfx")
+				cancelTween("ncfy")
+				setProperty("ncf.x", target[1])
+				setProperty("ncf.y", target[2])
+			else
+				doTweenX("ncfx", "ncf", target[1], duration, ease)
+				doTweenY("ncfy", "ncf", target[2], duration, ease)
+			end
 		end
 	end
 end
+
 function snap_target(tag)
 	local target = targets[tag]
 	if target then
-		cur = {x = target.x, y = target.y}
-		setProperty("camFollowPos.x", cur.x); setProperty("camFollowPos.y", cur.y)
-		setProperty("ncfollow.x", cur.x); setProperty("ncfollow.y", cur.y)
+		cur = {target[1], target[2]}
+		setProperty("camFollowPos.x", cur[1])
+		setProperty("camFollowPos.y", cur[2])
+		setProperty("ncf.x", cur[1])
+		setProperty("ncf.y", cur[2])
 	end
 end
 
-function bump(camera, amount) if zooms[camera] then zooms[camera] = zooms[camera] + amount end end
-function zoom(camera, amount, duration, ease)
-	camera = camera:lower(); camera = camera:sub(1, 3) == "cam" and camera:sub(4, -1) or camera
-	if zooms[camera] then
-		if duration <= 0.01 then cancelTween("nczoom" .. camera); setProperty("nczoom" .. camera .. ".x", amount)
-		else doTweenX("nczoom" .. camera, "nczoom" .. camera, amount, duration, ease) end
-	end
-end
-function snap_zoom(camera, amount)
-	camera = camera:lower(); camera = camera:sub(1, 3) == "cam" and camera:sub(4, -1) or camera
-	if zooms[camera] then
-		zooms[camera] = amount
-		cancelTween("nczoom" .. camera); setProperty("nczoom" .. camera .. ".x", amount)
-	end
-end
-
-function onCreatePost()
-	targets = targets[songName:lower()] or {
-		dad = {x = getMidpointX("dad") + 150 + getProperty("dad.cameraPosition[0]") + getProperty("opponentCameraOffset[0]"), y = getMidpointY("dad") - 100 + getProperty("dad.cameraPosition[1]") + getProperty("opponentCameraOffset[1]")},
-		bf = {x = getMidpointX("boyfriend") - 100 - getProperty("boyfriend.cameraPosition[0]") + getProperty("boyfriendCameraOffset[0]"), y = getMidpointY("boyfriend") - 100 + getProperty("boyfriend.cameraPosition[1]") + getProperty("boyfriendCameraOffset[1]")}
-	}
-	set_target("center", (targets.dad.x + targets.bf.x) / 2, (targets.dad.y + targets.bf.y) / 2)
-	
-	makeLuaSprite("ncfollow", nil, 0, 0)
-	snap_target("center"); setProperty("isCameraOnForcedPos", true)
-	
-	zooms.game = getProperty("defaultCamZoom")
-	makeLuaSprite("nczoomgame", nil, zooms.game, 0); makeLuaSprite("nczoomhud", nil, 1, 0)
-	
-	for i = 0, getProperty("eventNotes.length") - 1 do
-		if getPropertyFromGroup("eventNotes", i, "event") == "bump_speed" then
-			local time = getPropertyFromGroup("eventNotes", i, "strumTime")
-			if time <= stepCrochet then bumping = {modulo = tonumber(getPropertyFromGroup("eventNotes", i, "value1")) or 4, amount = tonumber(getPropertyFromGroup("eventNotes", i, "value2")) or 1}
-			else setPropertyFromGroup("eventNotes", i, "strumTime", time - 25) end
+function shake(cam, x, y, duration, ease)
+	if duration > 0.01 then
+		cam = cam == "game" and "g" or "h"
+		
+		if x and x ~= 0 then
+			setProperty("ncs" .. cam .. ".x", x)
+			doTweenX("ncs" .. cam .. "x", "ncs" .. cam, 0, duration, ease)
+		end
+		
+		if y and y ~= 0 then
+			setProperty("ncs" .. cam .. ".y", y)
+			doTweenY("ncs" .. cam .. "y", "ncs" .. cam, 0, duration, ease)
 		end
 	end
 end
 
-function onSongStart()
-	focus(mustHitSection and "bf" or "dad", 1.25, "cubeout")
-	bump("game", bumping.amount * 0.015); bump("hud", bumping.amount * 0.03)
+function bump(cam, amount)
+	cam = cam == "game" and 1 or 2
+	zooms[cam] = zooms[cam] + amount * 0.015
 end
-function onSectionHit() focus(mustHitSection and "bf" or "dad", 1.25, "cubeout") end
-function onStepHit() if curStep % (bumping.modulo * 4) == 0 then bump("game", bumping.amount * 0.015); bump("hud", bumping.amount * 0.03) end end
 
-local function follow_note(direction)
-	if offset_locked then offset[1] = {x = 0, y = 0} else
-		local horizontal = direction == 0 or direction == 3
-		offset[1] = {x = horizontal and (direction == 0 and -offset_magnitude or offset_magnitude) or 0, y = horizontal and 0 or (direction == 1 and offset_magnitude or -offset_magnitude)}
+function zoom(cam, amount, duration, ease, lock)
+	cam = cam == "game" and 1 or 2
+	if lock == false then locked_zoom = lock end
+	if not locked_zoom then
+		if lock == true then locked_zoom = lock end
+		if duration <= 0.01 then
+			cancelTween("ncz" .. cam)
+			setProperty("ncz" .. cam .. ".x", amount)
+		else
+			doTweenX("ncz" .. cam, "ncz" .. cam, amount, duration, ease)
+		end
 	end
 end
+
+function snap_zoom(cam, amount)
+	cam = cam == "game" and 1 or 2
+	zooms[cam] = amount
+	cancelTween("ncz" .. cam)
+	setProperty("ncz" .. cam .. ".x", amount)
+end
+
+function onCreatePost()
+	targets = {
+		opp = {
+			getMidpointX("dad") + 150 + getProperty("dad.cameraPosition[0]") + getProperty("opponentCameraOffset[0]"),
+			getMidpointY("dad") - 100 + getProperty("dad.cameraPosition[1]") + getProperty("opponentCameraOffset[1]")
+		},
+		
+		plr = {
+			getMidpointX("boyfriend") - 100 - getProperty("boyfriend.cameraPosition[0]") + getProperty("boyfriendCameraOffset[0]"),
+			getMidpointY("boyfriend") - 100 + getProperty("boyfriend.cameraPosition[1]") + getProperty("boyfriendCameraOffset[1]")
+		}
+	}
+	
+	set_target("center", (targets.opp[1] + targets.opp[1]) / 2, (targets.opp[2] + targets.opp[2]) / 2)
+	
+	makeLuaSprite("ncf", nil, 0, 0)
+	snap_target("center")
+	setProperty("isCameraOnForcedPos", true)
+	
+	makeLuaSprite("ncsg", nil, 0, 0)
+	makeLuaSprite("ncsh", nil, 0, 0)
+	
+	zooms[1] = getProperty("defaultCamZoom")
+	makeLuaSprite("nczg", nil, zooms[1], 0)
+	makeLuaSprite("nczh", nil, 1, 0)
+end
+
+function onSongStart()
+	focus(mustHitSection and "plr" or "opp", 1.25, "cubeout")
+	bump("game", bumping[2])
+	bump("hud", bumping[2] * 2)
+end
+
+function onSectionHit() focus(mustHitSection and "plr" or "opp", 1.25, "cubeout") end
+function onStepHit()
+	if curStep % (bumping[1] * 4) == 0 then
+		bump("game", bumping[2])
+		bump("hud", bumping[2] * 2)
+	end
+end
+
+local function follow_note(direction)
+	if locked_offset then
+		offset[1] = {0, 0}
+	else
+		local horizontal = direction == 0 or direction == 3
+		offset[1] = {
+			horizontal and (direction == 0 and -offset_mag or offset_mag) or 0,
+			horizontal and 0 or (direction == 1 and offset_mag or -offset_mag)
+		}
+	end
+end
+
 function goodNoteHit(id, direction) if mustHitSection then follow_note(direction) end end
 function opponentNoteHit(id, direction) if not mustHitSection then follow_note(direction) end end
 
 local events = {
-	bump_speed = function(v1, v2) bumping = {modulo = tonumber(v1) or (curStep + 1) / 4, amount = tonumber(v2) or 1} end,
-	bump = function(v1, v2) bump("game", tonumber(v1) or 0.015); bump("hud", tonumber(v2) or 0.03) end,
-	game_zoom = function(v1, v2) v1, v2 = tonumber(v1) or getProperty("defaultCamZoom"), tonumber(v2) or 0; v2 = v2 < 0 and 0 or v2; zoom("game", v1, v2, "sineinout") end,
-	hud_zoom = function(v1, v2) v1, v2 = tonumber(v1) or 1, tonumber(v2) or 0; v2 = v2 < 0 and 0 or v2; zoom("hud", v1, v2, "sineinout") end
+	bump_speed = function(modulo, amount)
+		bumping = {tonumber(modulo) or 4, tonumber(amount) or 1}
+	end,
+	
+	bump = function(game_amount, hud_amount)
+		bump("game", tonumber(game_amount) or 1)
+		bump("hud", tonumber(hud_amount) or 2)
+	end,
+	
+	game_zoom = function(amount, duration)
+		amount = tonumber(amount) or (getProperty("defaultCamZoom") / 0.015)
+		duration = tonumber(duration) or 0
+		duration = duration < 0 and 0 or duration
+		zoom("game", amount, duration, "sineinout")
+	end,
+	
+	hud_zoom = function(amount, duration)
+		amount = tonumber(amount) or 1
+		duration = tonumber(duration) or 0
+		duration = duration < 0 and 0 or duration
+		zoom("hud", amount, duration, "sineinout")
+	end,
+	
+	shake_game = function(x, y)
+		x = tonumber(x) or 0
+		y = tonumber(y) or 0
+		shake("game", x, y, 1, "cubeout")
+	end,
+	
+	shake_hud = function(x, y)
+		x = tonumber(x) or 0
+		y = tonumber(y) or 0
+		shake("hud", x, y, 1, "cubeout")
+	end,
 }
+
 function onEvent(name, v1, v2) if events[name] then events[name](v1, v2) end end
 
-local min, max = math.min, math.max
-local function lerp(start, goal, alpha) return start + (goal - start) * alpha end
 function onUpdatePost(elapsed)
-	if not stop then
-		local alpha = min(max(elapsed * follow_speed, 0), 1)
-		if offset_locked then offset[1] = {x = 0, y = 0} end
-		offset[2] = {x = lerp(offset[2].x, offset[1].x, alpha), y = lerp(offset[2].y, offset[1].y, alpha)}
-		cur = {x = lerp(cur.x, getProperty("ncfollow.x") + offset[2].x, alpha), y = lerp(cur.y, getProperty("ncfollow.y") + offset[2].y, alpha)}
+	if not frozen then
+		local alpha = min(max(elapsed * pos_speed, 0), 1)
+		
+		debugPrint(elapsed)
+		debugPrint(pos_speed)
+		debugPrint(alpha)
+		debugPrint("_________")
+		
+		if locked_offset then offset[1] = {0, 0} end
+		
+		offset[2] = {lerp(offset[2][1], offset[1][1], alpha), lerp(offset[2][2], offset[1][2], alpha)}
+		
+		shaking[3] = shaking[3] + elapsed
+		if shaking[3] > 1 / shake_fps then
+			shaking = {
+				{getRandomInt(-1, 1) * getProperty("ncsg.x"), getRandomInt(-1, 1) * getProperty("ncsg.y")},
+				{getRandomInt(-1, 1) * getProperty("ncsh.x"), getRandomInt(-1, 1) * getProperty("ncsh.y")},
+				shaking[3] % (1 / shake_fps)
+			}
+		end
+		
+		cur = {lerp(cur[1], getProperty("ncf.x") + offset[2][1], alpha), lerp(cur[2], getProperty("ncf.y") + offset[2][2], alpha)}
 		
 		alpha = min(max(elapsed * zoom_speed, 0), 1)
-		zooms.game = lerp(zooms.game, getProperty("nczoomgame.x"), alpha)
-		zooms.hud = lerp(zooms.hud, getProperty("nczoomhud.x"), alpha)
+		zooms[1] = lerp(zooms[1], getProperty("nczg.x"), alpha)
+		zooms[2] = lerp(zooms[2], getProperty("nczh.x"), alpha)
 		
-		setProperty("camFollowPos.x", cur.x); setProperty("camFollowPos.y", cur.y)
-		setProperty("camGame.zoom", zooms.game); setProperty("camHUD.zoom", zooms.hud)
+		setProperty("camFollowPos.x", cur[1] + shaking[1][1])
+		setProperty("camFollowPos.y", cur[2] + shaking[1][2])
+		setProperty("camHUD.x", shaking[2][1])
+		setProperty("camHUD.y", shaking[2][2])
+		
+		setProperty("camGame.zoom", zooms[1])
+		setProperty("camHUD.zoom", zooms[2])
 	end
 end
 
 function onGameOverStart()
 	cameraShake("game", 0.01, 0.1)
-	stop = true
+	frozen = true
 end

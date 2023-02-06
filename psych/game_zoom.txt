@@ -1,2 +1,5 @@
-v1: game zoom amount (leave blank for default)
-v2: duration (leave blank for 0)
+zoom the game camera (sineinout easing)
+note: bump amount is normalized; 1 = 1x default bump amount, 2 = 2x, etc
+
+v1: "amount", number, default: (defaultCamZoom / 0.015)
+v2: "duration", number, default: 0
