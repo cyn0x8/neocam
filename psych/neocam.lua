@@ -22,7 +22,7 @@ local targets = {}
 local cur = {0, 0}
 local offset = {{0, 0}, {0, 0}}
 local shaking = {{0, 0}, {0, 0}, 0}
-local zooms = {1, 1}
+local zooms = {g = 1, h = 1}
 local bumping = {4, 1}
 
 function set_target(tag, x, y) targets[tag] = {x, y} end
@@ -58,28 +58,32 @@ function snap_target(tag)
 end
 
 function shake(cam, x, y, duration, ease)
-	if duration > 0.01 then
-		cam = cam == "game" and "g" or "h"
+	cam = cam == "game" and "g" or "h"
+	
+	if x then
+		setProperty("ncs" .. cam .. ".x", x)
 		
-		if x and x ~= 0 then
-			setProperty("ncs" .. cam .. ".x", x)
+		if duration > 0.01 then
 			doTweenX("ncs" .. cam .. "x", "ncs" .. cam, 0, duration, ease)
 		end
+	end
+	
+	if y then
+		setProperty("ncs" .. cam .. ".y", y)
 		
-		if y and y ~= 0 then
-			setProperty("ncs" .. cam .. ".y", y)
+		if duration > 0.01 then
 			doTweenY("ncs" .. cam .. "y", "ncs" .. cam, 0, duration, ease)
 		end
 	end
 end
 
 function bump(cam, amount)
-	cam = cam == "game" and 1 or 2
+	cam = cam == "game" and "g" or "h"
 	zooms[cam] = zooms[cam] + amount * 0.015
 end
 
 function zoom(cam, amount, duration, ease, lock)
-	cam = cam == "game" and 1 or 2
+	cam = cam == "game" and "g" or "h"
 	if lock == false then locked_zoom = lock end
 	if not locked_zoom then
 		if lock == true then locked_zoom = lock end
@@ -93,7 +97,7 @@ function zoom(cam, amount, duration, ease, lock)
 end
 
 function snap_zoom(cam, amount)
-	cam = cam == "game" and 1 or 2
+	cam = cam == "game" and "g" or "h"
 	zooms[cam] = amount
 	cancelTween("ncz" .. cam)
 	setProperty("ncz" .. cam .. ".x", amount)

@@ -41,7 +41,7 @@ note: bump amount is normalized; 1 = 1x default bump amount, 2 = 2x, etc
 	- v1: "game_amount", `number`, default: `1`
 	- v2: "hud_amount", `number`, default: `2`
 - `game_zoom` - zoom the game camera (sineinout easing)
-	- v1: "amount", `number`, default: `(defaultCamZoom / 0.015)`
+	- v1: "amount", `number`, default: `defaultCamZoom`
 	- v2: "duration", `number`, default: `0`
 - `hud_zoom` - zoom the hud camera (sineinout easing)
 	- v1: "amount", `number`, default: `1`
